@@ -22,6 +22,11 @@ if ($QtDir -match "mingw") {
           "e.g. C:\Qt\6.11.1\msvc2022_64. Install the 'MSVC 2022 64-bit' component " +
           "via the Qt Maintenance Tool and pass that path."
 }
+if (-not (Test-Path "$QtDir\lib\cmake\Qt6\Qt6Config.cmake")) {
+    throw "No Qt6 found at $QtDir (missing lib\cmake\Qt6\Qt6Config.cmake). " +
+          "Install the 'MSVC 2022 64-bit' component for this Qt version via the " +
+          "Qt Maintenance Tool, then pass its path as -QtDir."
+}
 
 if (-not (Test-Path "$CcSrc\.git")) {
     Write-Host "== Cloning CloudCompare ($CcRef) =="
