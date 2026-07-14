@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "cloudcompare-building-dims": {
+      "command": "python",
+      "args": ["C:\\path\\to\\cloud-compare-plugin\\mcp\\server.py"],
+      "env": {
+        "CLOUDCOMPARE_BIN": "C:\\Program Files\\CloudCompare\\CloudCompare.exe"
+      }
+    }
+  }
+}

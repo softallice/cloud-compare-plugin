@@ -1,0 +1,15 @@
+{
+	"type": "Standard",
+	"name": "Building Dimensions (qBuildingDims)",
+	"icon": ":/CC/plugin/qBuildingDims/images/icon.png",
+	"description": "Extract building dimensions (length/width/height) from a point cloud via an oriented bounding box, export the footprint to DXF, and expose a -BUILDING_DIMS command-line command for AI-agent / MCP integration.",
+	"authors": [
+		{ "name": "won-sang" }
+	],
+	"maintainers": [
+		{ "name": "won-sang" }
+	],
+	"references": [
+		{ "text": "CloudCompare", "url": "https://cloudcompare.org" }
+	]
+}

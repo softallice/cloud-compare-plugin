@@ -1,0 +1,27 @@
+# Build output
+build/
+*.o
+*.obj
+*.so
+*.dll
+*.dylib
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Scratch outputs
+*.dxf
+*.json
+!mcp/claude_desktop_config.example.json
+!plugin/info.json
+out.*
