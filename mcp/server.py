@@ -26,6 +26,8 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
+import interpret as _interpret
+
 mcp = FastMCP("cloudcompare-building-dims")
 
 # Windows default install path is the common case for Claude Desktop users.
@@ -154,6 +156,57 @@ def extract_building_dims(
     if elevation_out:
         result["elevation_path"] = elevation_out
     return result
+
+
+@mcp.tool()
+def interpret_building(
+    cloud_path: str,
+    unit: str = "m",
+    timeout_seconds: int = 300,
+) -> dict[str, Any]:
+    """L4 — extract geometry then apply semantic interpretation.
+
+    Runs the full plugin pipeline (dims + planes + openings) on the cloud,
+    then classifies openings (door/window/garage/storefront), detects
+    regular fenestration rows, and offers a low-confidence building-use
+    hypothesis. Every inference carries confidence + evidence.
+
+    For deeper reasoning beyond these rules, use the `interpret_building`
+    prompt with the returned JSON.
+    """
+    analysis = extract_building_dims(
+        cloud_path,
+        unit=unit,
+        detect_planes=True,
+        detect_openings=True,
+        timeout_seconds=timeout_seconds,
+    )
+    if not analysis.get("ok", False):
+        return analysis
+
+    interpretation = _interpret.interpret(analysis)
+    return {"ok": True, "measurements": analysis, "interpretation": interpretation}
+
+
+@mcp.prompt()
+def interpret_building_prompt(analysis_json: str) -> str:
+    """Reasoning scaffold for Claude to interpret a building analysis JSON."""
+    return (
+        "You are given geometric measurements of a building extracted from a "
+        "point cloud by the qBuildingDims CloudCompare plugin (dimensions, wall/"
+        "floor/roof planes, storeys, and detected openings with sizes and sill "
+        "heights).\n\n"
+        "Interpret it as an architect would, and STRICTLY:\n"
+        "1. Distinguish what is measured (high confidence) from what is inferred.\n"
+        "2. For each opening, reason about its likely function (door, window, "
+        "garage, entrance, storefront) from width/height/sill and neighbours.\n"
+        "3. Identify patterns: window rows per storey, symmetry, primary entrance.\n"
+        "4. Offer a building-use hypothesis ONLY with explicit confidence and the "
+        "evidence for it; state what would confirm or refute it.\n"
+        "5. Flag scan-quality risks (occlusion, glazing, low density) that could "
+        "distort the geometry. Never overclaim from a point cloud alone.\n\n"
+        f"Analysis JSON:\n{analysis_json}\n"
+    )
 
 
 @mcp.tool()
