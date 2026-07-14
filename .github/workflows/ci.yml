@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # Fast: verifies the parts that don't need a full CloudCompare build.
+  standalone:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Standalone smoke test (DxfWriter + interpret.py)
+        run: bash scripts/verify-standalone.sh
+
+  # Heavy: builds CloudCompare + plugin to catch C++ API mismatches.
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: plugin-repo
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake git \
+            qt6-base-dev qt6-tools-dev qt6-tools-dev-tools \
+            libqt6opengl6-dev libqt6svg6-dev libgdal-dev
+      - name: Build CloudCompare + qBuildingDims
+        run: bash plugin-repo/scripts/build-linux.sh "$GITHUB_WORKSPACE/CloudCompare" master
+
+  # Heavy: Windows build (matches the real deployment target).
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: plugin-repo
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.7.2"
+      - name: Build CloudCompare + qBuildingDims
+        shell: pwsh
+        run: |
+          plugin-repo/scripts/build-windows.ps1 -QtDir "$env:QT_ROOT_DIR" `
+            -CcSrc "$env:GITHUB_WORKSPACE/CloudCompare" -CcRef master
