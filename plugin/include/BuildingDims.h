@@ -11,6 +11,7 @@
 #pragma once
 
 #include <QString>
+#include <QStringList>
 
 // CCCoreLib
 #include <CCGeom.h>

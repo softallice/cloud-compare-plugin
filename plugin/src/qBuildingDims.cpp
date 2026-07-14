@@ -20,6 +20,7 @@
 
 // Qt
 #include <QAction>
+#include <QMainWindow>
 #include <QMessageBox>
 
 qBuildingDims::qBuildingDims(QObject* parent)

@@ -3,6 +3,9 @@
 //#                CLOUDCOMPARE PLUGIN: qBuildingDims                       #
 //##########################################################################
 
+// MSVC does not define M_PI unless this is set before any <cmath>/<math.h>.
+#define _USE_MATH_DEFINES
+
 #include "DxfWriter.h"
 
 #include <cmath>
