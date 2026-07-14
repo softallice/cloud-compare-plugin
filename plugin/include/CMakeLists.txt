@@ -4,6 +4,7 @@ target_sources( ${PROJECT_NAME}
 		${CMAKE_CURRENT_LIST_DIR}/qBuildingDimsCommand.h
 		${CMAKE_CURRENT_LIST_DIR}/BuildingDims.h
 		${CMAKE_CURRENT_LIST_DIR}/Planes.h
+		${CMAKE_CURRENT_LIST_DIR}/Openings.h
 		${CMAKE_CURRENT_LIST_DIR}/Drawings.h
 		${CMAKE_CURRENT_LIST_DIR}/DxfWriter.h
 )

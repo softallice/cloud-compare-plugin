@@ -75,6 +75,7 @@ def extract_building_dims(
     unit: str = "m",
     dxf_out: str | None = None,
     detect_planes: bool = False,
+    detect_openings: bool = False,
     plan_out: str | None = None,
     elevation_out: str | None = None,
     timeout_seconds: int = 300,
@@ -87,6 +88,8 @@ def extract_building_dims(
         unit: Unit label carried into the result (default "m").
         dxf_out: Optional path to write the footprint as a DXF file.
         detect_planes: Also run wall/floor/roof plane + storey analysis (L2).
+        detect_openings: Also detect windows/doors as framed voids in walls (L3).
+            Implies plane detection. Adds an "openings" array to the result.
         plan_out: Optional path to write a top-down PLAN drawing (DXF, with
             footprint, wall segments, and dimension lines). Implies plane detection.
         elevation_out: Optional path to write ELEVATION drawings (DXF, one framed
@@ -119,6 +122,8 @@ def extract_building_dims(
             args += ["-DXF", str(dxf_out)]
         if detect_planes or plan_out or elevation_out:
             args += ["-PLANES"]
+        if detect_openings:
+            args += ["-OPENINGS"]
         if plan_out:
             args += ["-PLAN", str(plan_out)]
         if elevation_out:

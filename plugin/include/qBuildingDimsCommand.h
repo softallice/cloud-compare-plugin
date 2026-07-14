@@ -11,6 +11,7 @@
 
 #include "BuildingDims.h"
 #include "Drawings.h"
+#include "Openings.h"
 #include "Planes.h"
 
 // CCPluginAPI
@@ -46,7 +47,8 @@ struct CommandBuildingDims : public ccCommandLineInterface::Command
 		QString              dxfPath;
 		QString              planPath;
 		QString              elevPath;
-		bool                 doPlanes = false;
+		bool                 doPlanes   = false;
+		bool                 doOpenings = false;
 
 		// --- parse sub-options ---------------------------------------------------
 		while (!cmd.arguments().empty())
@@ -90,6 +92,11 @@ struct CommandBuildingDims : public ccCommandLineInterface::Command
 			{
 				cmd.arguments().pop_front();
 				doPlanes = true;
+			}
+			else if (ccCommandLineInterface::IsCommand(arg, "OPENINGS"))
+			{
+				cmd.arguments().pop_front();
+				doOpenings = true;
 			}
 			else if (ccCommandLineInterface::IsCommand(arg, "PLAN"))
 			{
@@ -137,9 +144,12 @@ struct CommandBuildingDims : public ccCommandLineInterface::Command
 			              .arg(res.height, 0, 'f', 3)
 			              .arg(unit));
 
-			// --- L2: plane / storey analysis (on demand) ------------------------
-			const bool needPlanes = doPlanes || !planPath.isEmpty() || !elevPath.isEmpty();
-			Planes::Model planesModel;
+			// --- L2/L3: plane / storey / opening analysis (on demand) -----------
+			const bool needOpenings = doOpenings;
+			const bool needPlanes =
+			    doPlanes || needOpenings || !planPath.isEmpty() || !elevPath.isEmpty();
+			Planes::Model                  planesModel;
+			std::vector<Openings::Opening> openings;
 			if (needPlanes)
 			{
 				planesModel = Planes::detect(pc);
@@ -148,14 +158,25 @@ struct CommandBuildingDims : public ccCommandLineInterface::Command
 				              .arg(planesModel.storeyCount)
 				              .arg(planesModel.storeyHeight, 0, 'f', 2));
 			}
+			if (needOpenings)
+			{
+				openings = Openings::detect(pc, planesModel);
+				int doors = 0, windows = 0;
+				for (const Openings::Opening& o : openings)
+					(o.type == Openings::Type::Door ? doors : windows)++;
+				cmd.print(QStringLiteral("[BUILDING_DIMS] openings=%1 (doors=%2 windows=%3)")
+				              .arg(openings.size()).arg(doors).arg(windows));
+			}
 
 			if (!jsonPath.isEmpty())
 			{
-				// Start from the dimensions doc, optionally merge the plane analysis.
+				// Start from the dimensions doc, optionally merge the analyses.
 				QJsonObject root =
 				    QJsonDocument::fromJson(BuildingDims::toJson(res, desc.basename)).object();
 				if (needPlanes)
 					root[QStringLiteral("planes_analysis")] = Planes::toJson(planesModel, unit);
+				if (needOpenings)
+					root[QStringLiteral("openings")] = Openings::toJson(openings, unit);
 
 				QFile jf(jsonPath);
 				if (jf.open(QIODevice::WriteOnly | QIODevice::Text))
@@ -181,7 +202,7 @@ struct CommandBuildingDims : public ccCommandLineInterface::Command
 
 			if (!elevPath.isEmpty())
 			{
-				const QString err = Drawings::writeElevations(planesModel, unit, elevPath);
+				const QString err = Drawings::writeElevations(planesModel, unit, elevPath, openings);
 				if (!err.isEmpty())
 					cmd.warning(QStringLiteral("[BUILDING_DIMS] %1").arg(err));
 				else

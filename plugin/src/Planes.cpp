@@ -128,6 +128,10 @@ namespace Planes
 			CCVector3d u = bestNormal.cross(ref);
 			u /= (u.norm() > 1e-9 ? u.norm() : 1.0);
 			CCVector3d v = bestNormal.cross(u);
+			v /= (v.norm() > 1e-9 ? v.norm() : 1.0);
+			// Keep the vertical axis pointing up so vMin=base, vMax=top.
+			if (v.z < 0.0)
+				v = -v;
 
 			double uMin = 1e300, uMax = -1e300, vMin = 1e300, vMax = -1e300;
 			for (unsigned idx : bestInliers)
@@ -141,6 +145,11 @@ namespace Planes
 			}
 			plane.inPlaneWidth  = (uMax - uMin) * invScale;
 			plane.inPlaneHeight = (vMax - vMin) * invScale;
+			plane.centroidLocal = cLocal;
+			plane.axisU = u;
+			plane.axisV = v;
+			plane.uMin = uMin; plane.uMax = uMax;
+			plane.vMin = vMin; plane.vMax = vMax;
 
 			const CCVector3d cGlobal = cloud->toGlobal3d(
 			    CCVector3(static_cast<PointCoordinateType>(cLocal.x),

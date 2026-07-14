@@ -36,6 +36,13 @@ namespace Planes
 		double     elevationZ    = 0.0;  //!< global Z of centroid (useful for horizontals)
 		unsigned   inlierCount   = 0;
 		std::vector<unsigned> inliers;   //!< indices into the source cloud
+
+		// In-plane 2D frame (LOCAL cloud units), used by opening detection.
+		CCVector3d centroidLocal;    //!< inlier centroid (local coordinates)
+		CCVector3d axisU;            //!< in-plane horizontal axis (unit)
+		CCVector3d axisV;            //!< in-plane vertical axis (unit, +Z-ish for walls)
+		double     uMin = 0.0, uMax = 0.0;  //!< extents along axisU (local)
+		double     vMin = 0.0, vMax = 0.0;  //!< extents along axisV (local)
 	};
 
 	struct Model

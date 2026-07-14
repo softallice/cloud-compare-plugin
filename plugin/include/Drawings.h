@@ -9,9 +9,11 @@
 #pragma once
 
 #include "BuildingDims.h"
+#include "Openings.h"
 #include "Planes.h"
 
 #include <QString>
+#include <vector>
 
 namespace Drawings
 {
@@ -24,7 +26,8 @@ namespace Drawings
 	//! Writes ELEVATION drawings (one framed rectangle per wall, laid out
 	//! left-to-right) with width and height dimension lines.
 	//! \return empty string on success.
-	QString writeElevations(const Planes::Model& model,
-	                         const QString&       unit,
-	                         const QString&       path);
+	QString writeElevations(const Planes::Model&                model,
+	                         const QString&                      unit,
+	                         const QString&                      path,
+	                         const std::vector<Openings::Opening>& openings = {});
 }

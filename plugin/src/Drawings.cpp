@@ -16,6 +16,7 @@ namespace
 	const char* LAYER_WALLS     = "WALLS";
 	const char* LAYER_DIMS      = "DIMENSIONS";
 	const char* LAYER_TEXT      = "TEXT";
+	const char* LAYER_OPENINGS  = "OPENINGS";
 
 	std::string fmt(double v, const QString& unit)
 	{
@@ -88,12 +89,14 @@ namespace Drawings
 		                                      : QStringLiteral("Failed to write plan DXF: %1").arg(path);
 	}
 
-	QString writeElevations(const Planes::Model& model, const QString& unit, const QString& path)
+	QString writeElevations(const Planes::Model& model, const QString& unit, const QString& path,
+	                        const std::vector<Openings::Opening>& openings)
 	{
 		DxfWriter dxf;
 		dxf.addLayer(LAYER_WALLS, 3);
 		dxf.addLayer(LAYER_DIMS, 1);
 		dxf.addLayer(LAYER_TEXT, 7);
+		dxf.addLayer(LAYER_OPENINGS, 4);  // cyan
 
 		double cursorX   = 0.0;
 		int    elevIndex = 0;
@@ -126,6 +129,21 @@ namespace Drawings
 
 			dxf.addText(LAYER_TEXT, x0, h + th * 1.5, th * 1.2,
 			            std::string("ELEVATION ") + std::to_string(elevIndex + 1));
+
+			// Overlay openings that belong to this wall (matched by index).
+			for (const Openings::Opening& op : openings)
+			{
+				if (op.wallIndex != elevIndex)
+					continue;
+				std::vector<DxfWriter::Pt> r = {
+					{ x0 + op.u0, op.v0 }, { x0 + op.u1, op.v0 },
+					{ x0 + op.u1, op.v1 }, { x0 + op.u0, op.v1 }
+				};
+				dxf.addPolyline(LAYER_OPENINGS, r, true);
+				const char* tag = (op.type == Openings::Type::Door) ? "D" : "W";
+				dxf.addText(LAYER_OPENINGS, x0 + op.u0, op.v1 + th * 0.3, th * 0.9,
+				            std::string(tag) + " " + fmt(op.width, unit) + "x" + fmt(op.height, unit));
+			}
 
 			cursorX += w + gap;
 			++elevIndex;
