@@ -41,6 +41,18 @@ if (-not (Select-String -Path $cml -Pattern "qBuildingDims" -Quiet)) {
     "add_subdirectory( qBuildingDims )`n" + (Get-Content $cml -Raw) | Set-Content $cml
 }
 
+# Drop a stale CMake cache left by a previous run with a different generator
+# (e.g. an earlier NMake fallback), which otherwise aborts configure.
+$cache = "$CcSrc\build\CMakeCache.txt"
+if (Test-Path $cache) {
+    $prev = Select-String -Path $cache -Pattern "^CMAKE_GENERATOR:INTERNAL=(.*)$" |
+        ForEach-Object { $_.Matches[0].Groups[1].Value }
+    if ($prev -and $prev -ne $Generator) {
+        Write-Host "== Stale cache ($prev != $Generator) — wiping build dir =="
+        Remove-Item -Recurse -Force "$CcSrc\build"
+    }
+}
+
 Write-Host "== Configuring (generator: $Generator $Arch) =="
 # Force the Visual Studio generator + architecture so CMake never falls back to
 # NMake/MinGW when run outside a VS Developer prompt.
