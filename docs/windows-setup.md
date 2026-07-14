@@ -126,3 +126,4 @@ python server.py    # 정상 기동 시 stdio 대기 (Ctrl+C로 종료)
 | JSON 없음 | 플러그인 미포함 바이너리 사용 중. B(직접 빌드) 필요 |
 | DXF 실패 | `CC_DXF_SUPPORT` 미정의 빌드. CMake 옵션/의존성 확인 |
 | las 로드 실패 | qLAS/qLASIO IO 플러그인 미빌드. `-DPLUGIN_IO_QLAS=ON` |
+| `nmake -?` 실패 / `CMAKE_C_COMPILER not set` | MinGW Qt(`…\mingw_64`)를 지정했거나 VS 환경 밖에서 실행. **MSVC용 Qt**(`…\msvc2022_64`)를 쓰고 스크립트가 `-G "Visual Studio 17 2022" -A x64`로 구성하는지 확인 |
