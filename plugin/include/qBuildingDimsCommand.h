@@ -10,6 +10,8 @@
 #pragma once
 
 #include "BuildingDims.h"
+#include "Drawings.h"
+#include "Planes.h"
 
 // CCPluginAPI
 #include <ccCommandLineInterface.h>
@@ -18,6 +20,11 @@
 #include <ccPointCloud.h>
 #include <ccPolyline.h>
 #include <ccHObject.h>
+
+// Qt
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
 
 //! -BUILDING_DIMS [-METHOD OBB|AABB] [-UNIT m] [-JSON out.json] [-DXF out.dxf]
 /** Operates on every cloud currently loaded on the command-line stack. **/
@@ -37,6 +44,9 @@ struct CommandBuildingDims : public ccCommandLineInterface::Command
 		QString              unit   = QStringLiteral("m");
 		QString              jsonPath;
 		QString              dxfPath;
+		QString              planPath;
+		QString              elevPath;
+		bool                 doPlanes = false;
 
 		// --- parse sub-options ---------------------------------------------------
 		while (!cmd.arguments().empty())
@@ -76,6 +86,25 @@ struct CommandBuildingDims : public ccCommandLineInterface::Command
 					return cmd.error(QStringLiteral("Missing path after -DXF"));
 				dxfPath = cmd.arguments().takeFirst();
 			}
+			else if (ccCommandLineInterface::IsCommand(arg, "PLANES"))
+			{
+				cmd.arguments().pop_front();
+				doPlanes = true;
+			}
+			else if (ccCommandLineInterface::IsCommand(arg, "PLAN"))
+			{
+				cmd.arguments().pop_front();
+				if (cmd.arguments().empty())
+					return cmd.error(QStringLiteral("Missing path after -PLAN"));
+				planPath = cmd.arguments().takeFirst();
+			}
+			else if (ccCommandLineInterface::IsCommand(arg, "ELEV"))
+			{
+				cmd.arguments().pop_front();
+				if (cmd.arguments().empty())
+					return cmd.error(QStringLiteral("Missing path after -ELEV"));
+				elevPath = cmd.arguments().takeFirst();
+			}
 			else
 			{
 				// Not one of our sub-options: hand control back to the parser.
@@ -108,12 +137,55 @@ struct CommandBuildingDims : public ccCommandLineInterface::Command
 			              .arg(res.height, 0, 'f', 3)
 			              .arg(unit));
 
+			// --- L2: plane / storey analysis (on demand) ------------------------
+			const bool needPlanes = doPlanes || !planPath.isEmpty() || !elevPath.isEmpty();
+			Planes::Model planesModel;
+			if (needPlanes)
+			{
+				planesModel = Planes::detect(pc);
+				cmd.print(QStringLiteral("[BUILDING_DIMS] planes=%1 storeys=%2 storeyH=%3")
+				              .arg(planesModel.planes.size())
+				              .arg(planesModel.storeyCount)
+				              .arg(planesModel.storeyHeight, 0, 'f', 2));
+			}
+
 			if (!jsonPath.isEmpty())
 			{
-				if (!BuildingDims::writeJson(res, jsonPath, desc.basename))
-					cmd.warning(QStringLiteral("[BUILDING_DIMS] failed to write JSON: %1").arg(jsonPath));
-				else
+				// Start from the dimensions doc, optionally merge the plane analysis.
+				QJsonObject root =
+				    QJsonDocument::fromJson(BuildingDims::toJson(res, desc.basename)).object();
+				if (needPlanes)
+					root[QStringLiteral("planes_analysis")] = Planes::toJson(planesModel, unit);
+
+				QFile jf(jsonPath);
+				if (jf.open(QIODevice::WriteOnly | QIODevice::Text))
+				{
+					jf.write(QJsonDocument(root).toJson(QJsonDocument::Indented));
+					jf.close();
 					cmd.print(QStringLiteral("[BUILDING_DIMS] JSON -> %1").arg(jsonPath));
+				}
+				else
+				{
+					cmd.warning(QStringLiteral("[BUILDING_DIMS] failed to write JSON: %1").arg(jsonPath));
+				}
+			}
+
+			if (!planPath.isEmpty())
+			{
+				const QString err = Drawings::writePlan(res, planesModel, planPath);
+				if (!err.isEmpty())
+					cmd.warning(QStringLiteral("[BUILDING_DIMS] %1").arg(err));
+				else
+					cmd.print(QStringLiteral("[BUILDING_DIMS] PLAN -> %1").arg(planPath));
+			}
+
+			if (!elevPath.isEmpty())
+			{
+				const QString err = Drawings::writeElevations(planesModel, unit, elevPath);
+				if (!err.isEmpty())
+					cmd.warning(QStringLiteral("[BUILDING_DIMS] %1").arg(err));
+				else
+					cmd.print(QStringLiteral("[BUILDING_DIMS] ELEV -> %1").arg(elevPath));
 			}
 
 			if (!dxfPath.isEmpty())

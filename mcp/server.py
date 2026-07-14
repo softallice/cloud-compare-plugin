@@ -74,6 +74,9 @@ def extract_building_dims(
     method: str = "OBB",
     unit: str = "m",
     dxf_out: str | None = None,
+    detect_planes: bool = False,
+    plan_out: str | None = None,
+    elevation_out: str | None = None,
     timeout_seconds: int = 300,
 ) -> dict[str, Any]:
     """Extract building dimensions (length, width, height) from a point cloud.
@@ -82,12 +85,18 @@ def extract_building_dims(
         cloud_path: Path to the point cloud file (.las, .laz, .e57, .ply, .bin, ...).
         method: "OBB" (oriented bounding box, default) or "AABB" (axis-aligned).
         unit: Unit label carried into the result (default "m").
-        dxf_out: Optional path to also write the footprint as a DXF file.
+        dxf_out: Optional path to write the footprint as a DXF file.
+        detect_planes: Also run wall/floor/roof plane + storey analysis (L2).
+        plan_out: Optional path to write a top-down PLAN drawing (DXF, with
+            footprint, wall segments, and dimension lines). Implies plane detection.
+        elevation_out: Optional path to write ELEVATION drawings (DXF, one framed
+            rectangle per wall with width/height dimension lines). Implies planes.
         timeout_seconds: Max seconds to wait for CloudCompare.
 
     Returns:
         Parsed dimension result: dimensions{length,width,height}, footprint,
-        center, global_shift, point_count, warnings.
+        center, global_shift, point_count, warnings, and — when requested —
+        planes_analysis{plane_count, planes[], storey_count, storey_height}.
     """
     src = Path(cloud_path)
     if not src.exists():
@@ -108,6 +117,12 @@ def extract_building_dims(
         ]
         if dxf_out:
             args += ["-DXF", str(dxf_out)]
+        if detect_planes or plan_out or elevation_out:
+            args += ["-PLANES"]
+        if plan_out:
+            args += ["-PLAN", str(plan_out)]
+        if elevation_out:
+            args += ["-ELEV", str(elevation_out)]
 
         try:
             proc = _run_cli(args, timeout=timeout_seconds)
@@ -129,6 +144,10 @@ def extract_building_dims(
 
     if dxf_out:
         result["dxf_path"] = dxf_out
+    if plan_out:
+        result["plan_path"] = plan_out
+    if elevation_out:
+        result["elevation_path"] = elevation_out
     return result
 
 
