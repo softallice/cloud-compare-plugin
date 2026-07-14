@@ -61,8 +61,12 @@ if (Test-Path $cache) {
 Write-Host "== Configuring (generator: $Generator $Arch) =="
 # Force the Visual Studio generator + architecture so CMake never falls back to
 # NMake/MinGW when run outside a VS Developer prompt.
+# Pass Qt6_DIR directly (not just the prefix) so find_package(Qt6) resolves even
+# if a prior run cached a NOTFOUND. Use forward slashes to avoid backslash quirks.
+$QtFwd = $QtDir -replace '\\', '/'
 cmake -S $CcSrc -B "$CcSrc\build" -G $Generator -A $Arch `
-    -DCMAKE_PREFIX_PATH=$QtDir -DPLUGIN_STANDARD_QBUILDINGDIMS=ON
+    -DCMAKE_PREFIX_PATH="$QtFwd" -DQt6_DIR="$QtFwd/lib/cmake/Qt6" `
+    -DPLUGIN_STANDARD_QBUILDINGDIMS=ON
 
 Write-Host "== Building =="
 cmake --build "$CcSrc\build" --config Release
